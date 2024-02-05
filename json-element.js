@@ -108,6 +108,7 @@ export default class JSONElement extends HTMLElement {
     const root = this.attachShadow({ mode: "open" });
 
     this.addEventListener("json-change", this);
+    root.addEventListener("slotchange", this);
 
     for (const [key, value] of Object.entries(this.schema)) {
       if (!isCompositeSchema(value)) continue;
@@ -120,14 +121,20 @@ export default class JSONElement extends HTMLElement {
   }
 
   attributeChangedCallback() {
-    // if there are no changes, queue a microtask to notify
-    if (!this.#queued) queueMicrotask(() => this.#notify());
-    this.#queued = true;
+    // queue a `json-change` event dispatch
+    this.#queue();
   }
 
   /** @param {JSONChangeEvent} ev */
   handleEvent(ev) {
     switch (ev.type) {
+      case "slotchange": {
+        console.log("SLOT CHANGE");
+        // queue a `json-change` event dispatch
+        this.#queue();
+        break;
+      }
+
       // batch multiple `json-change` events from descendants
       case "json-change": {
         const target = ev.target;
@@ -139,11 +146,17 @@ export default class JSONElement extends HTMLElement {
         // prevent any other handlers from handling the event
         ev.stopImmediatePropagation();
 
-        // if there are no changes, queue a microtask to notify
-        if (!this.#queued) queueMicrotask(() => this.#notify());
-        this.#queued = true;
+        // queue a `json-change` event dispatch
+        this.#queue();
+        break;
       }
     }
+  }
+
+  #queue() {
+    // if there are no changes, queue a microtask to notify
+    if (!this.#queued) queueMicrotask(() => this.#notify());
+    this.#queued = true;
   }
 
   #notify() {
