@@ -7,7 +7,8 @@
  * @property {unknown} [value]
  */
 
-/** @typedef {CustomEvent<{ patches?: Patch[] }>} JSONChangeEvent
+/**
+ * @typedef {CustomEvent<{ patches?: Patch[] }>} JSONChangeEvent
  * An event emitted when the JSON changes, optionally containing an array of JSON Patch operations.
  */
 
