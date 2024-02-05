@@ -65,6 +65,7 @@ function isJson(obj) {
 
 export default class JSONElement extends HTMLElement {
   static tag = "json-webcomponent";
+
   static register(tag = this.tag) {
     const ce = customElements.get(tag);
     if (ce === this) return;
@@ -79,6 +80,21 @@ export default class JSONElement extends HTMLElement {
   /** @type {Record<string, any>} */
   static get schema() {
     return {};
+  }
+
+  /**
+   * @param {any} _prev
+   * @param {any} _next
+   * @param {string} [_path]
+   * @returns {Patch[]}
+   */
+  static diff(_prev, _nex, _path) {
+    console.warn(`Import and call enableDiff() to generate diffs.`);
+    return [];
+  }
+
+  static get observedAttributes() {
+    return Object.keys(this.schema);
   }
 
   /** Whether a task is queued to emit a `json-change` event */
@@ -98,12 +114,9 @@ export default class JSONElement extends HTMLElement {
 
       const slot = document.createElement("slot");
       slot.name = key;
+      slot.addEventListener("slotchange", e => console.log(e));
       root.append(slot);
     }
-  }
-
-  static get observedAttributes() {
-    return Object.keys(this.schema);
   }
 
   attributeChangedCallback() {
@@ -268,4 +281,8 @@ function diff(prev, next, path = "") {
   }
 
   return patches;
+}
+
+export function enableDiff() {
+  JSONElement.diff = diff;
 }

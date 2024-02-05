@@ -1,6 +1,16 @@
 {
-  "dependencies": {},
-  "devDependencies": {
-    "bun-types": "^1.0.25"
+  "name": "json-element",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "linkedom": "^0.16.8"
   }
 }
