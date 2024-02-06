@@ -13,7 +13,6 @@
  */
 
 const LITERAL_TYPES = new Set(["boolean", "number", "string", "null"]);
-const PROPERTY_TYPES = new Set([Boolean, Number, String]);
 
 /**
  * Indicate that a schema property is optional.
@@ -130,7 +129,6 @@ export default class JSONElement extends HTMLElement {
   handleEvent(ev) {
     switch (ev.type) {
       case "slotchange": {
-        console.log("SLOT CHANGE");
         // queue a `json-change` event dispatch
         this.#queue();
         break;
@@ -192,28 +190,32 @@ export default class JSONElement extends HTMLElement {
       // literals in the schema should go as is
       if (LITERAL_TYPES.has(typeof v)) {
         result[k] = v;
-        continue;
+      }
+
+      // primitive constructors should coerce the corresponding attribute
+      else if (v === Boolean) result[k] = this.getAttribute(k) !== null;
+      else if (v === String) result[k] = this.getAttribute(k) || "";
+      else if (v === Number) {
+        const num = Number(this.getAttribute(k));
+        result[k] = Number.isNaN(num) ? undefined : num;
       }
 
       // arrays in the schema should use the corresponding slot elements' json
-      if (isArraySchema(v)) {
+      else if (isArraySchema(v)) {
         const els = this.#slotted(k);
         result[k] = els.map(el => el.json);
-        continue;
       }
 
       // objects in the schema should use json from the corresponding slot's first element
-      if (isObjectSchema(v)) {
+      else if (isObjectSchema(v)) {
         const [el] = this.#slotted(k);
         if (el) result[k] = el.json;
-        continue;
       }
 
       // functions in the schema should coerce the corresponding attribute
-      if (PROPERTY_TYPES.has(v) || typeof v === "function") {
+      else if (typeof v === "function") {
         const value = v(this.getAttribute(k));
         if (value !== undefined) result[k] = value;
-        continue;
       }
     }
 

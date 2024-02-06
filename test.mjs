@@ -21,7 +21,8 @@ test("basic tests", async t => {
 
       static schema = {
         string: String,
-        number: Number
+        number: Number,
+        bool: Boolean
       };
     }
 
@@ -29,19 +30,19 @@ test("basic tests", async t => {
   });
 
   await t.test("serializes strings and numbers", () => {
-    document.body.innerHTML = `<test-basic string="test" number="10"></test-basic>`;
+    document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
     const instance = document.querySelector("test-basic");
 
-    assert.deepStrictEqual(instance.json, { string: "test", number: 10 });
+    assert.deepStrictEqual(instance.json, { string: "test", number: 10, bool: true });
   });
 
   await t.test("emits a `json-change` event on initialization", () => {
     return new Promise(async resolve => {
-      document.body.innerHTML = `<test-basic string="test" number="10"></test-basic>`;
+      document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
       const instance = document.querySelector("test-basic");
 
       instance?.addEventListener("json-change", () => {
-        assert.deepStrictEqual(instance.json, { string: "test", number: 10 });
+        assert.deepStrictEqual(instance.json, { string: "test", number: 10, bool: true });
         resolve();
       });
     });
@@ -49,7 +50,7 @@ test("basic tests", async t => {
 
   await t.test("includes a JSON patch for elements with diff set", async () => {
     return new Promise(async resolve => {
-      document.body.innerHTML = `<test-basic string="test" number="10"></test-basic>`;
+      document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
       const instance = document.querySelector("test-basic");
 
       instance?.addEventListener("json-change", ev => {
@@ -57,7 +58,7 @@ test("basic tests", async t => {
         assert.deepStrictEqual(patches[0], {
           op: "replace",
           path: "",
-          value: { string: "test", number: 10 }
+          value: { string: "test", number: 10, bool: true }
         });
         resolve();
       });
@@ -81,12 +82,12 @@ test("basic tests", async t => {
 
   await t.test("batches multiple attribute changes into a single `json-change` event", async () => {
     return new Promise(async resolve => {
-      document.body.innerHTML = `<test-basic string="test" number="10"></test-basic>`;
+      document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
       const instance = document.querySelector("test-basic");
       await customElements.whenDefined("test-basic");
 
       instance?.addEventListener("json-change", () => {
-        assert.deepStrictEqual(instance.json, { string: "othertest", number: 100 });
+        assert.deepStrictEqual(instance.json, { string: "othertest", number: 100, bool: true });
         resolve();
       });
 
@@ -150,20 +151,20 @@ test("composite", async t => {
   await t.test("serializes nested objects", () => {
     document.body.innerHTML = `
       <test-object>
-        <test-basic slot="object" string="one" number="1"></test-basic>
+        <test-basic slot="object" string="one" number="1" bool></test-basic>
       </test-object>
     `;
     const instance = document.querySelector("test-object");
 
     assert.deepStrictEqual(instance.json, {
-      object: { string: "one", number: 1 }
+      object: { string: "one", number: 1, bool: true }
     });
   });
 
   await t.test("serializes nested arrays", () => {
     document.body.innerHTML = `
       <test-array>
-        <test-basic slot="array" string="one" number="1"></test-basic>
+        <test-basic slot="array" string="one" number="1" bool></test-basic>
         <test-basic slot="array" string="two" number="2"></test-basic>
       </test-array>
     `;
@@ -171,8 +172,8 @@ test("composite", async t => {
 
     assert.deepStrictEqual(instance.json, {
       array: [
-        { string: "one", number: 1 },
-        { string: "two", number: 2 }
+        { string: "one", number: 1, bool: true },
+        { string: "two", number: 2, bool: false }
       ]
     });
   });
@@ -181,7 +182,7 @@ test("composite", async t => {
     return new Promise(async resolve => {
       document.body.innerHTML = `
         <test-array id="array">
-          <test-basic slot="array" string="one" number="1"></test-basic>
+          <test-basic slot="array" string="one" number="1" bool></test-basic>
           <test-basic slot="array" string="two" number="2"></test-basic>
         </test-array>
       `;
@@ -192,8 +193,8 @@ test("composite", async t => {
       instance?.addEventListener("json-change", ev => {
         assert.deepStrictEqual(instance.json, {
           array: [
-            { string: "one test", number: 1 },
-            { string: "two", number: 2 }
+            { string: "one test", number: 1, bool: true },
+            { string: "two", number: 2, bool: false }
           ]
         });
         resolve();
@@ -208,7 +209,7 @@ test("composite", async t => {
     return new Promise(async resolve => {
       document.body.innerHTML = `
         <test-array id="array">
-          <test-basic slot="array" string="one" number="1"></test-basic>
+          <test-basic slot="array" string="one" number="1" bool></test-basic>
           <test-basic slot="array" string="two" number="2"></test-basic>
         </test-array>
       `;
@@ -219,9 +220,9 @@ test("composite", async t => {
       instance?.addEventListener("json-change", ev => {
         assert.deepStrictEqual(instance.json, {
           array: [
-            { string: "one", number: 1 },
-            { string: "two", number: 2 },
-            { string: "three", number: 3 }
+            { string: "one", number: 1, bool: true },
+            { string: "two", number: 2, bool: false },
+            { string: "three", number: 3, bool: false }
           ]
         });
         resolve();
