@@ -80,7 +80,6 @@ export default class JSONElement extends HTMLElement {
 
       const slot = document.createElement("slot");
       slot.name = key;
-      slot.addEventListener("slotchange", e => console.log(e));
       root.append(slot);
     }
   }
@@ -159,10 +158,13 @@ export default class JSONElement extends HTMLElement {
 
       // primitive constructors should coerce the corresponding attribute
       else if (v === Boolean) json[k] = this.getAttribute(k) !== null;
-      else if (v === String) json[k] = this.getAttribute(k) ?? undefined;
-      else if (v === Number) {
-        const num = Number(this.getAttribute(k) ?? NaN);
-        json[k] = Number.isNaN(num) ? undefined : num;
+      else if (v === String) {
+        const value = this.getAttribute(k);
+        if (value !== null) json[k] = value;
+      } else if (v === Number) {
+        const value = this.getAttribute(k),
+          num = Number(value);
+        if (value !== null && !Number.isNaN(num)) json[k] = num;
       }
 
       // arrays in the schema should use the corresponding slot elements' json
@@ -216,8 +218,8 @@ function append(path, prop) {
 }
 
 /** @param {any} x */
-function isObject(x) {
-  return typeof x == "object" && x !== null;
+function isScalar(x) {
+  return x === null || typeof x !== "object";
 }
 
 /**
@@ -227,8 +229,11 @@ function isObject(x) {
  * @returns {Patch[]}
  */
 function diff(prev, next, path = "") {
+  // if prev and next share a reference, don't bother checking further
+  if (prev === next) return [];
+
   // if prev and next aren't equal and at least one is a scalar, replace it
-  if (prev !== next && (!isObject(prev) || !isObject(next))) {
+  if (prev !== next && (isScalar(prev) || isScalar(next))) {
     return [{ op: "replace", path, value: next }];
   }
 
