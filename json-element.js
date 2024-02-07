@@ -14,52 +14,17 @@
 
 const LITERAL_TYPES = new Set(["boolean", "number", "string", "null"]);
 
-/**
- * Indicate that a schema property is optional.
- * @template T
- * @param {(value: unknown) => T} fn
- */
-export function Optional(fn) {
-  return (/** @type {T} */ value) => (value === null ? undefined : fn(value));
-}
-
-/** @param {Array<boolean | number | string | null>} literals */
-export function Enum(...literals) {
-  return (/** @type {unknown} */ value) => {
-    for (const literal of literals) {
-      if (value !== literal) continue;
-      switch (typeof literal) {
-        case "boolean":
-          return Boolean(value);
-        case "number":
-          return Number(value);
-        case "string":
-          return String(value);
-        default:
-          return value;
-      }
-    }
-
-    console.warn(`${value} must be one of ${literals.join(", ")}`);
-    return value;
-  };
-}
-
-/** @param {unknown} value */
+/** @param {any} value */
 const isArraySchema = value => Array.isArray(value) || value === Array;
 
-/** @param {unknown} value */
-const isObjectSchema = value =>
-  /** @type {any} */ (value)?.prototype instanceof JSONElement || value === Object;
+/** @param {any} value */
+const isObjectSchema = value => value?.prototype instanceof JSONElement || value === Object;
 
 /** @param {unknown} value */
 const isCompositeSchema = value => isArraySchema(value) || isObjectSchema(value);
 
-/**
- * @param {unknown} obj
- * @returns {obj is JSONElement}
- */
-function isJson(obj) {
+/** @returns {obj is JSONElement} */
+function isJSONElement(obj) {
   return obj instanceof JSONElement;
 }
 
@@ -140,7 +105,7 @@ export default class JSONElement extends HTMLElement {
 
         // if this element dispatched the event, let it through
         if (target === this) return;
-        if (!isJson(target)) return;
+        if (!(target instanceof JSONElement)) return;
 
         // prevent any other handlers from handling the event
         ev.stopImmediatePropagation();
@@ -184,42 +149,42 @@ export default class JSONElement extends HTMLElement {
 
   get json() {
     /** @type {any} */
-    const result = {};
+    const json = {};
 
     for (const [k, v] of Object.entries(this.schema)) {
       // literals in the schema should go as is
       if (LITERAL_TYPES.has(typeof v)) {
-        result[k] = v;
+        json[k] = v;
       }
 
       // primitive constructors should coerce the corresponding attribute
-      else if (v === Boolean) result[k] = this.getAttribute(k) !== null;
-      else if (v === String) result[k] = this.getAttribute(k) || "";
+      else if (v === Boolean) json[k] = this.getAttribute(k) !== null;
+      else if (v === String) json[k] = this.getAttribute(k) ?? undefined;
       else if (v === Number) {
-        const num = Number(this.getAttribute(k));
-        result[k] = Number.isNaN(num) ? undefined : num;
+        const num = Number(this.getAttribute(k) ?? NaN);
+        json[k] = Number.isNaN(num) ? undefined : num;
       }
 
       // arrays in the schema should use the corresponding slot elements' json
       else if (isArraySchema(v)) {
         const els = this.#slotted(k);
-        result[k] = els.map(el => el.json);
+        json[k] = els.map(el => el.json);
       }
 
       // objects in the schema should use json from the corresponding slot's first element
       else if (isObjectSchema(v)) {
         const [el] = this.#slotted(k);
-        if (el) result[k] = el.json;
+        if (el) json[k] = el.json;
       }
 
       // functions in the schema should coerce the corresponding attribute
       else if (typeof v === "function") {
         const value = v(this.getAttribute(k));
-        if (value !== undefined) result[k] = value;
+        if (value !== undefined) json[k] = value;
       }
     }
 
-    return result;
+    return json;
   }
 
   #slotted(name = "") {
@@ -230,7 +195,9 @@ export default class JSONElement extends HTMLElement {
     const slot = this.shadowRoot?.querySelector(selector);
 
     const els = slot?.assignedElements() || [];
-    return els.filter(isJson);
+    return els.filter(
+      /** @type {(el: Element) => el is JSONElement} */ (el => el instanceof JSONElement)
+    );
   }
 }
 
@@ -299,6 +266,7 @@ function diff(prev, next, path = "") {
   return patches;
 }
 
+/** Enable elements to include JSON Patch operations in `json-change` event details. */
 export function enableDiff() {
   JSONElement.diff = diff;
 }

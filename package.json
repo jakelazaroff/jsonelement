@@ -12,5 +12,11 @@
   "license": "ISC",
   "dependencies": {
     "linkedom": "^0.16.8"
+  },
+  "prettier": {
+    "quoteProps": "consistent",
+    "arrowParens": "avoid",
+    "printWidth": 100,
+    "trailingComma": "none"
   }
 }
