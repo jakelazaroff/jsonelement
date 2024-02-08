@@ -219,7 +219,7 @@ function append(path, prop) {
 
 /** @param {any} x */
 function isScalar(x) {
-  return x === null || typeof x !== "object";
+  return typeof x !== "object" || x === null;
 }
 
 /**
@@ -229,13 +229,11 @@ function isScalar(x) {
  * @returns {Patch[]}
  */
 function diff(prev, next, path = "") {
-  // if prev and next share a reference, don't bother checking further
+  // if prev and next are strictly equal, don't bother checking further
   if (prev === next) return [];
 
-  // if prev and next aren't equal and at least one is a scalar, replace it
-  if (prev !== next && (isScalar(prev) || isScalar(next))) {
-    return [{ op: "replace", path, value: next }];
-  }
+  // if at least one value is a scalar, replace it
+  if (isScalar(prev) || isScalar(next)) return [{ op: "replace", path, value: next }];
 
   /** @type {Patch[]} */
   const patches = [];
@@ -249,7 +247,7 @@ function diff(prev, next, path = "") {
       patches.push({ op: "add", path: newPath, value: next[prop] });
     }
 
-    // …otherwise, if both prev and next are objects, recurse into them and add any nested patches
+    // …otherwise, if both prev and next are objects or arrays, recurse into them and add any nested patches
     else if (typeof next[prop] === "object" && typeof prev[prop] === "object") {
       patches.push(...diff(prev[prop], next[prop], newPath));
     }
