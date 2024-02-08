@@ -1,8 +1,8 @@
 {
   "name": "json-element",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "./json-element.js",
   "type": "module",
   "scripts": {
     "test": "node --test test.mjs"
