@@ -10,13 +10,14 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "linkedom": "^0.16.8"
-  },
   "prettier": {
     "quoteProps": "consistent",
     "arrowParens": "avoid",
     "printWidth": 100,
     "trailingComma": "none"
+  },
+  "dependencies": {
+    "@types/node": "^20.11.16",
+    "linkedom": "^0.16.8"
   }
 }

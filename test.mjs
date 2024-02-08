@@ -132,7 +132,7 @@ test("basic tests", async t => {
         });
 
         instance?.setAttribute("string", "othertest");
-        instance?.setAttribute("number", 100);
+        instance?.setAttribute("number", "100");
       });
     }
   );

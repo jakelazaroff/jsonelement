@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
-    "module": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "esnext",
+    "esModuleInterop": true,
     "lib": ["esnext", "dom"],
     "checkJs": true,
     "noEmit": true,

@@ -20,7 +20,6 @@
 /** @typedef {boolean | number | string | null | typeof Boolean | typeof Number | typeof String | typeof Object | typeof JSONElement | typeof Array | Array<typeof Object | typeof JSONElement> | ValueGetter<any>} SchemaInput */
 
 const LITERAL_TYPES = new Set(["boolean", "number", "string", "null"]);
-const PRIMITIVE_CONSTRUCTORS = new Set([Boolean, Number, String]);
 
 /**
  * @template {boolean | number | string | null} T
@@ -32,18 +31,14 @@ const isLiteralSchema = schema => LITERAL_TYPES.has(typeof schema);
 const isArraySchema = schema => Array.isArray(schema) || schema === Array;
 
 /** @param {SchemaInput} schema */
-const isObjectSchema = schema => schema?.prototype instanceof JSONElement || schema === Object;
+const isObjectSchema = schema =>
+  /** @type {typeof Object} */ (schema)?.prototype instanceof JSONElement || schema === Object;
 
 /** @param {SchemaInput} schema */
 const isCompositeSchema = schema =>
   isObjectSchema(schema) ||
   isArraySchema(schema) ||
   (typeof schema === "function" && schema.length >= 2);
-
-/** @returns {obj is JSONElement} */
-function isJSONElement(obj) {
-  return obj instanceof JSONElement;
-}
 
 /** @type {ValueGetter<string>} */
 const string = value => value || undefined;
@@ -79,7 +74,9 @@ function compile(schema) {
   else if (schema === String) return string;
   else if (isObjectSchema(schema)) return object;
   else if (isArraySchema(schema)) return array;
-  else if (typeof schema === "function") return schema;
+  else if (typeof schema === "function") return /** @type ValueGetter<any> */ (schema);
+
+  throw new Error(`Invalid schema input ${schema}`);
 }
 
 /**
@@ -88,9 +85,14 @@ function compile(schema) {
  */
 export function Enum(...schemata) {
   const fns = schemata.map(schema => compile(schema));
-  return (value, key, els) => {
+
+  /**
+   * @param {string | null} value
+   * @param {JSONElement[]} els
+   */
+  return (value, els) => {
     for (const fn of fns) {
-      const result = fn(value, key, els);
+      const result = fn(value, els);
       if (result !== undefined) return result;
     }
   };
@@ -119,7 +121,7 @@ export default class JSONElement extends HTMLElement {
    * @param {string} [_path]
    * @returns {Patch[]}
    */
-  static diff(_prev, _nex, _path) {
+  static diff(_prev, _next, _path) {
     console.warn(`Import and call enableDiff() to generate diffs.`);
     return [];
   }

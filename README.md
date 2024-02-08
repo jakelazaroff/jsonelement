@@ -6,7 +6,7 @@ JSONElement is a web component for writing declarative code in JavaScript apps. 
 
 JSONElement doesn't provide any custom elements that you use directly. Instead, you use it to create your own custom elements that reflect a schema.
 
-For example, here's how you might use JSONElement to represent [GeoJson](https://geojson.org):
+For example, here's how you might use JSONElement to represent the JSON on the [GeoJson homepage](https://geojson.org):
 
 ```html
 <geojson-feature>
@@ -60,20 +60,17 @@ GeoJsonPoint.register();
 GeoJsonProperties.register();
 ```
 
-There are two main things to change in a `JSONElement` subclass:
+There are three main properties to change in a `JSONElement` subclass:
 
 - `tag` is a static string property that determines the custom element tag name.
 - `schema` is a static object property that determines the keys and value types of the resulting JSON.
-
-The full JSON output is available at a `json` property on the element:
+- `json` is an instance getter that returns the actual JSON object. Useful for validating and/or transforming the JSON's structure.
 
 ```js
 const feature = document.querySelector("geojson-feature");
 
 console.log(feature.json);
 ```
-
-In addition, the `json` property can be overridden with a getter if you need to customize the JSON output, as with the `GeoJsonPoint`'s `coordinates` above.
 
 To be notified of changes to the JSON structure, listen for `json-change` events on the root element:
 
