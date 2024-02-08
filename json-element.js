@@ -12,20 +12,88 @@
  * An event emitted when the JSON changes, optionally containing an array of JSON Patch operations.
  */
 
+/**
+ * @template T
+ * @typedef {(value: string | null, els: JSONElement[]) => T | undefined} ValueGetter
+ */
+
+/** @typedef {boolean | number | string | null | typeof Boolean | typeof Number | typeof String | typeof Object | typeof JSONElement | typeof Array | Array<typeof Object | typeof JSONElement> | ValueGetter<any>} SchemaInput */
+
 const LITERAL_TYPES = new Set(["boolean", "number", "string", "null"]);
+const PRIMITIVE_CONSTRUCTORS = new Set([Boolean, Number, String]);
 
-/** @param {any} value */
-const isArraySchema = value => Array.isArray(value) || value === Array;
+/**
+ * @template {boolean | number | string | null} T
+ * @param {SchemaInput} schema
+ * @returns {schema is T} */
+const isLiteralSchema = schema => LITERAL_TYPES.has(typeof schema);
 
-/** @param {any} value */
-const isObjectSchema = value => value?.prototype instanceof JSONElement || value === Object;
+/** @param {SchemaInput} schema */
+const isArraySchema = schema => Array.isArray(schema) || schema === Array;
 
-/** @param {unknown} value */
-const isCompositeSchema = value => isArraySchema(value) || isObjectSchema(value);
+/** @param {SchemaInput} schema */
+const isObjectSchema = schema => schema?.prototype instanceof JSONElement || schema === Object;
+
+/** @param {SchemaInput} schema */
+const isCompositeSchema = schema =>
+  isObjectSchema(schema) ||
+  isArraySchema(schema) ||
+  (typeof schema === "function" && schema.length >= 2);
 
 /** @returns {obj is JSONElement} */
 function isJSONElement(obj) {
   return obj instanceof JSONElement;
+}
+
+/** @type {ValueGetter<string>} */
+const string = value => value || undefined;
+
+/** @type {ValueGetter<boolean>} */
+const boolean = value => value !== null;
+
+/** @type {ValueGetter<number>} */
+const number = value => {
+  if (value === null) return;
+
+  const num = Number(value);
+  if (Number.isNaN(num)) return;
+
+  return num;
+};
+
+/** @type {ValueGetter<any>} */
+const object = (_, [el]) => el?.json;
+
+/** @type {ValueGetter<any[]>} */
+const array = (_, els) => els.map(el => el.json);
+
+/**
+ * @template {SchemaInput} T
+ * @param {T} schema
+ * @returns {ValueGetter<any>}
+ */
+function compile(schema) {
+  if (isLiteralSchema(schema)) return () => schema;
+  else if (schema === Boolean) return boolean;
+  else if (schema === Number) return number;
+  else if (schema === String) return string;
+  else if (isObjectSchema(schema)) return object;
+  else if (isArraySchema(schema)) return array;
+  else if (typeof schema === "function") return schema;
+}
+
+/**
+ * @template {SchemaInput[]} T
+ * @param {T} schemata
+ */
+export function Enum(...schemata) {
+  const fns = schemata.map(schema => compile(schema));
+  return (value, key, els) => {
+    for (const fn of fns) {
+      const result = fn(value, key, els);
+      if (result !== undefined) return result;
+    }
+  };
 }
 
 export default class JSONElement extends HTMLElement {
@@ -43,9 +111,7 @@ export default class JSONElement extends HTMLElement {
   diff = false;
 
   /** @type {Record<string, any>} */
-  static get schema() {
-    return {};
-  }
+  static schema = {};
 
   /**
    * @param {any} _prev
@@ -68,6 +134,9 @@ export default class JSONElement extends HTMLElement {
   /** @type {any} The previous JSON value for diffing */
   #prev = null;
 
+  /** @type {Record<string, ValueGetter<any>>} */
+  #schema = {};
+
   constructor() {
     super();
     const root = this.attachShadow({ mode: "open" });
@@ -75,7 +144,9 @@ export default class JSONElement extends HTMLElement {
     this.addEventListener("json-change", this);
     root.addEventListener("slotchange", this);
 
-    for (const [key, value] of Object.entries(this.schema)) {
+    const schema = /** @type {typeof JSONElement} */ (this.constructor).schema;
+    for (const [key, value] of Object.entries(schema)) {
+      this.#schema[key] = compile(value);
       if (!isCompositeSchema(value)) continue;
 
       const slot = document.createElement("slot");
@@ -142,48 +213,14 @@ export default class JSONElement extends HTMLElement {
     this.dispatchEvent(ev);
   }
 
-  get schema() {
-    return /** @type {typeof JSONElement} */ (this.constructor).schema;
-  }
-
   get json() {
     /** @type {any} */
     const json = {};
 
-    for (const [k, v] of Object.entries(this.schema)) {
-      // literals in the schema should go as is
-      if (LITERAL_TYPES.has(typeof v)) {
-        json[k] = v;
-      }
-
-      // primitive constructors should coerce the corresponding attribute
-      else if (v === Boolean) json[k] = this.getAttribute(k) !== null;
-      else if (v === String) {
-        const value = this.getAttribute(k);
-        if (value !== null) json[k] = value;
-      } else if (v === Number) {
-        const value = this.getAttribute(k),
-          num = Number(value);
-        if (value !== null && !Number.isNaN(num)) json[k] = num;
-      }
-
-      // arrays in the schema should use the corresponding slot elements' json
-      else if (isArraySchema(v)) {
-        const els = this.#slotted(k);
-        json[k] = els.map(el => el.json);
-      }
-
-      // objects in the schema should use json from the corresponding slot's first element
-      else if (isObjectSchema(v)) {
-        const [el] = this.#slotted(k);
-        if (el) json[k] = el.json;
-      }
-
-      // functions in the schema should coerce the corresponding attribute
-      else if (typeof v === "function") {
-        const value = v(this.getAttribute(k));
-        if (value !== undefined) json[k] = value;
-      }
+    for (const [key, fn] of Object.entries(this.#schema)) {
+      const slotted = isCompositeSchema(fn) ? this.#slotted(key) : [];
+      const value = fn(this.getAttribute(key), slotted);
+      if (value !== undefined) json[key] = value;
     }
 
     return json;

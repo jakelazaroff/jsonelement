@@ -20,6 +20,7 @@ test("basic tests", async t => {
       static tag = "test-basic";
 
       static schema = {
+        literal: "literal",
         string: String,
         number: Number,
         bool: Boolean
@@ -33,7 +34,12 @@ test("basic tests", async t => {
     document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
     const instance = document.querySelector("test-basic");
 
-    assert.deepStrictEqual(instance.json, { string: "test", number: 10, bool: true });
+    assert.deepStrictEqual(instance.json, {
+      literal: "literal",
+      string: "test",
+      number: 10,
+      bool: true
+    });
   });
 
   await t.test("emits a `json-change` event on initialization", () => {
@@ -42,7 +48,12 @@ test("basic tests", async t => {
       const instance = document.querySelector("test-basic");
 
       instance?.addEventListener("json-change", () => {
-        assert.deepStrictEqual(instance.json, { string: "test", number: 10, bool: true });
+        assert.deepStrictEqual(instance.json, {
+          literal: "literal",
+          string: "test",
+          number: 10,
+          bool: true
+        });
         resolve();
       });
     });
@@ -58,7 +69,7 @@ test("basic tests", async t => {
         assert.deepStrictEqual(patches[0], {
           op: "replace",
           path: "",
-          value: { string: "test", number: 10, bool: true }
+          value: { literal: "literal", string: "test", number: 10, bool: true }
         });
         resolve();
       });
@@ -87,7 +98,12 @@ test("basic tests", async t => {
       await customElements.whenDefined("test-basic");
 
       instance?.addEventListener("json-change", () => {
-        assert.deepStrictEqual(instance.json, { string: "othertest", number: 100, bool: true });
+        assert.deepStrictEqual(instance.json, {
+          literal: "literal",
+          string: "othertest",
+          number: 100,
+          bool: true
+        });
         resolve();
       });
 
@@ -157,7 +173,7 @@ test("composite", async t => {
     const instance = document.querySelector("test-object");
 
     assert.deepStrictEqual(instance.json, {
-      object: { string: "one", number: 1, bool: true }
+      object: { literal: "literal", string: "one", number: 1, bool: true }
     });
   });
 
@@ -172,8 +188,8 @@ test("composite", async t => {
 
     assert.deepStrictEqual(instance.json, {
       array: [
-        { string: "one", number: 1, bool: true },
-        { string: "two", number: 2, bool: false }
+        { literal: "literal", string: "one", number: 1, bool: true },
+        { literal: "literal", string: "two", number: 2, bool: false }
       ]
     });
   });
@@ -193,8 +209,8 @@ test("composite", async t => {
       instance?.addEventListener("json-change", ev => {
         assert.deepStrictEqual(instance.json, {
           array: [
-            { string: "one test", number: 1, bool: true },
-            { string: "two", number: 2, bool: false }
+            { literal: "literal", string: "one test", number: 1, bool: true },
+            { literal: "literal", string: "two", number: 2, bool: false }
           ]
         });
         resolve();
@@ -220,9 +236,9 @@ test("composite", async t => {
       instance?.addEventListener("json-change", ev => {
         assert.deepStrictEqual(instance.json, {
           array: [
-            { string: "one", number: 1, bool: true },
-            { string: "two", number: 2, bool: false },
-            { string: "three", number: 3, bool: false }
+            { literal: "literal", string: "one", number: 1, bool: true },
+            { literal: "literal", string: "two", number: 2, bool: false },
+            { literal: "literal", string: "three", number: 3, bool: false }
           ]
         });
         resolve();
@@ -261,4 +277,34 @@ test("composite", async t => {
   //     instance?.removeChild(child);
   //   });
   // });
+});
+
+test("enumerated", async t => {
+  before(async () => {
+    const { default: JSONElement, Enum } = await import("./json-element.js");
+
+    class TestEnum extends JSONElement {
+      static tag = "test-enum";
+
+      static schema = {
+        enum: Enum(String, Object)
+      };
+    }
+
+    TestEnum.register();
+  });
+
+  await t.test("prefers the first item in the enum", () => {
+    document.body.innerHTML = `<test-enum enum="test"></test-enum>`;
+    const instance = document.querySelector("test-enum");
+
+    assert.deepStrictEqual(instance.json, { enum: "test" });
+  });
+
+  await t.test("falls back to the second item in the enum", () => {
+    document.body.innerHTML = `<test-enum><test-basic slot="enum"></test-basic></test-enum>`;
+    const instance = document.querySelector("test-enum");
+
+    assert.deepStrictEqual(instance.json, { enum: { literal: "literal", bool: false } });
+  });
 });
