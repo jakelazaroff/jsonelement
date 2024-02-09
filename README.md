@@ -4,15 +4,29 @@
 
 JSONElement is a web component for declaratively building JSON in JavaScript apps. It's focused on replacing imperative "effect" APIs such as `useEffect` in React, `$effect` in Svelte or `attributeChangedCallback` in web components.
 
-As an example, here's how you might use `JSONElement` with a JavaScript library like [MapLibre](https://maplibre.org) to show a list of locations on a map on a webpage without writing any imperative JavaScript:
+You use `JSONElement` by creating your own custom elements that inherit from it to define schemas. Here's a simple example of how you might use it to define a GeoJson object:
+
+```js
+class GeoJsonProperties extends JSONElement {
+  static tag = "geojson-properties";
+
+  static schema = {
+    name: String
+  };
+}
+```
+
+You'd use that element in your HTML like this:
 
 ```html
-<ul>
-  <li class="place">Disney World Orlando</li>
-  <li class="place">Disneyland Anaheim</li>
-</ul>
+<geojson-properties name="Disney World Orlando"></geojson-properties>
+```
+
+Here's how that element might fit into a larger schema, wrapping a JavaScript library like [MapLibre](https://maplibre.org) to show locations on a map without writing any imperative JavaScript:
+
+```html
 <map-libre>
-  <maplibre-source slot="sources" id="places" type="geojson">
+  <maplibre-source id="places" type="geojson">
     <geojson-featurecollection>
       <geojson-feature slot="features">
         <geojson-properties slot="properties" name="Disney World Orlando"></geojson-properties>
@@ -59,19 +73,13 @@ function Map({ places }: { places: Place[] }) {
   }, [places]);
 
   return (
-    <>
-      <ul>
-        {places.map(place => (
-          <li key={place.name}>{place.name}</li>
-        ))}
-      </ul>
       <div
         ref={el => {
           if (!el) map.current?.remove();
           map.current = new maplibre.Map({ container: el });
         }}
-      ></div>
-    </>
+      >
+      </div>
   );
 }
 ```
@@ -99,7 +107,7 @@ function Map({ places }: { places: Place[] }) {
 </script>
 ```
 
-In both React and HTML with vanilla JavaScript, you need to switch between two different languages. You also need to use imperative, side-effectful code to instantiate the map.
+In both React and HTML with vanilla JavaScript, you need to switch between two different languages. You also need to use imperative, side-effectful code to instantiate the map. None of the above is easily taken out of context or composed elsewhere.
 
 Of course, under the hood in the first example the `maplibre-*` element is built using code like in the latter two. That's where `JSONElement` comes in: you can use it to easily transform elements in the DOM to build more declarative components.
 
