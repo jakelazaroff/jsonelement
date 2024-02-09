@@ -1,5 +1,5 @@
 {
-  "name": "jsonelement",
+  "name": "@jakelazaroff/jsonelement",
   "version": "0.1.0",
   "description": "",
   "main": "./json-element.js",
@@ -16,8 +16,8 @@
     "printWidth": 100,
     "trailingComma": "none"
   },
-  "dependencies": {
-    "@types/node": "^20.11.16",
+  "devDependencies": {
+    "@types/node": "^20.11.17",
     "linkedom": "^0.16.8"
   }
 }
