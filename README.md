@@ -1,5 +1,7 @@
 # JSONElement
 
+[![npm version](https://badge.fury.io/js/@jakelazaroff%2Fjsonelement.svg)](https://badge.fury.io/js/@jakelazaroff%2Fjsonelement)
+
 JSONElement is a web component for declaratively building JSON in JavaScript apps. It's focused on replacing imperative "effect" APIs such as `useEffect` in React, `$effect` in Svelte or `attributeChangedCallback` in web components.
 
 As an example, here's how you might use `JSONElement` with a JavaScript library like [MapLibre](https://maplibre.org) to show a list of locations on a map on a webpage without writing any imperative JavaScript:
