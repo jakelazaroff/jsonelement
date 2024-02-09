@@ -158,7 +158,10 @@ export default class JSONElement extends HTMLElement {
   }
 
   attributeChangedCallback() {
-    // queue a `json-change` event dispatch
+    this.#queue();
+  }
+
+  connectedCallback() {
     this.#queue();
   }
 
@@ -166,7 +169,6 @@ export default class JSONElement extends HTMLElement {
   handleEvent(ev) {
     switch (ev.type) {
       case "slotchange": {
-        // queue a `json-change` event dispatch
         this.#queue();
         break;
       }
@@ -189,12 +191,14 @@ export default class JSONElement extends HTMLElement {
     }
   }
 
+  /** Queues a `json-change` event dispatch */
   #queue() {
     // if there are no changes, queue a microtask to notify
     if (!this.#queued) queueMicrotask(() => this.#notify());
     this.#queued = true;
   }
 
+  /** Sends a `json-change` event */
   #notify() {
     /** @type {Patch[] | undefined} */
     let patches;

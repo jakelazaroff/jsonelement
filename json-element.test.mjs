@@ -57,6 +57,21 @@ test("basic tests", async t => {
     });
   });
 
+  await t.test(
+    "emits a `json-change` event on initialization even if all attributes are omitted",
+    () => {
+      return new Promise(async resolve => {
+        document.body.innerHTML = `<test-basic></test-basic>`;
+        const instance = document.querySelector("test-basic");
+
+        instance?.addEventListener("json-change", () => {
+          assert.deepStrictEqual(instance.json, { literal: "literal", bool: false });
+          resolve();
+        });
+      });
+    }
+  );
+
   await t.test("emits a `json-change` event when attributes change", () => {
     return new Promise(async resolve => {
       document.body.innerHTML = `<test-basic string="test" number="10"></test-basic>`;
