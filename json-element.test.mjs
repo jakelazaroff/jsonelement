@@ -12,11 +12,9 @@ before(() => {
 
 test("basic tests", async t => {
   before(async () => {
-    const { default: JSONElement, enableDiff } = await import("./json-element.js");
-    enableDiff();
+    const { default: JSONElement } = await import("./json-element.js");
 
     class TestBasic extends JSONElement {
-      diff = true;
       static tag = "test-basic";
 
       static schema = {
@@ -30,7 +28,7 @@ test("basic tests", async t => {
     TestBasic.register();
   });
 
-  await t.test("serializes strings and numbers", () => {
+  await t.test("serializes booleans, numbers and strings", () => {
     document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
     const instance = document.querySelector("test-basic");
 
@@ -53,23 +51,6 @@ test("basic tests", async t => {
           string: "test",
           number: 10,
           bool: true
-        });
-        resolve();
-      });
-    });
-  });
-
-  await t.test("includes a JSON patch for elements with diff set", async () => {
-    return new Promise(async resolve => {
-      document.body.innerHTML = `<test-basic string="test" number="10" bool></test-basic>`;
-      const instance = document.querySelector("test-basic");
-
-      instance?.addEventListener("json-change", ev => {
-        const patches = ev.detail.patches;
-        assert.deepStrictEqual(patches[0], {
-          op: "replace",
-          path: "",
-          value: { literal: "literal", string: "test", number: 10, bool: true }
         });
         resolve();
       });
@@ -111,31 +92,6 @@ test("basic tests", async t => {
       instance?.setAttribute("number", 100);
     });
   });
-
-  await t.test(
-    "includes an array of JSON patch operations for elements with `diff` set",
-    async () => {
-      return new Promise(async resolve => {
-        document.body.innerHTML = `<test-basic string="test" number="10"></test-basic>`;
-        const instance = document.querySelector("test-basic");
-        await customElements.whenDefined("test-basic");
-
-        instance?.addEventListener("json-change", ev => {
-          const patches = ev.detail.patches;
-          assert.deepStrictEqual(patches[0], {
-            op: "replace",
-            path: "/string",
-            value: "othertest"
-          });
-          assert.deepStrictEqual(patches[1], { op: "replace", path: "/number", value: 100 });
-          resolve();
-        });
-
-        instance?.setAttribute("string", "othertest");
-        instance?.setAttribute("number", "100");
-      });
-    }
-  );
 });
 
 test("composite", async t => {
@@ -307,4 +263,138 @@ test("enumerated", async t => {
 
     assert.deepStrictEqual(instance.json, { enum: { literal: "literal", bool: false } });
   });
+});
+
+test("diff", async t => {
+  let JSONElement;
+
+  before(async () => {
+    const lib = await import("./json-element.js");
+    JSONElement = lib.default;
+    lib.enableDiff();
+  });
+
+  /**
+   * An array of diff test cases
+   * @type {[description: string, before: any, after: any, patches: import("./json-element.js").Patch[]][]}
+   */
+  const cases = [
+    // top level
+    ["top-level scalar, noop", 1, 1, []],
+    ["top-level scalar, replace", 1, 2, [{ op: "replace", path: "", value: 2 }]],
+    ["top-level array, noop", [1], [1], []],
+    ["top-level array, add", [], [1], [{ op: "add", path: "/0", value: 1 }]],
+    ["top-level array, replace", [1], [2], [{ op: "replace", path: "/0", value: 2 }]],
+    ["top-level array, remove", [1], [], [{ op: "remove", path: "/0" }]],
+    [
+      "top-level array, cascading remove",
+      [1, 2, 3],
+      [2, 3],
+      [
+        { op: "replace", path: "/0", value: 2 },
+        { op: "replace", path: "/1", value: 3 },
+        { op: "remove", path: "/2" }
+      ]
+    ],
+    ["top-level object, noop", { foo: "foo" }, { foo: "foo" }, []],
+    [
+      "top-level object, add",
+      { foo: "foo" },
+      { foo: "foo", bar: "bar" },
+      [{ op: "add", path: "/bar", value: "bar" }]
+    ],
+    [
+      "top-level object, replace",
+      { foo: "foo" },
+      { foo: "qux" },
+      [{ op: "replace", path: "/foo", value: "qux" }]
+    ],
+    ["top-level object, remove", { foo: "foo" }, {}, [{ op: "remove", path: "/foo" }]],
+
+    // second level
+    ["second-level scalar, noop", { foo: 1 }, { foo: 1 }, []],
+    [
+      "second-level scalar, replace",
+      { foo: 1 },
+      { foo: 2 },
+      [{ op: "replace", path: "/foo", value: 2 }]
+    ],
+    ["second-level array, noop", { foo: [1] }, { foo: [1] }, []],
+    [
+      "second-level array, add",
+      { foo: [] },
+      { foo: [1] },
+      [{ op: "add", path: "/foo/0", value: 1 }]
+    ],
+    [
+      "second-level array, replace",
+      { foo: [1] },
+      { foo: [2] },
+      [{ op: "replace", path: "/foo/0", value: 2 }]
+    ],
+    ["second-level array, remove", { foo: [1] }, { foo: [] }, [{ op: "remove", path: "/foo/0" }]],
+    [
+      "second-level array, cascading remove",
+      { foo: [1, 2, 3] },
+      { foo: [2, 3] },
+      [
+        { op: "replace", path: "/foo/0", value: 2 },
+        { op: "replace", path: "/foo/1", value: 3 },
+        { op: "remove", path: "/foo/2" }
+      ]
+    ],
+    ["second-level object, noop", { foo: { bar: "baz" } }, { foo: { bar: "baz" } }, []],
+    [
+      "second-level object, add",
+      { foo: { bar: "baz" } },
+      { foo: { bar: "baz", qux: "thud" } },
+      [{ op: "add", path: "/foo/qux", value: "thud" }]
+    ],
+    [
+      "second-level object, replace",
+      { foo: { bar: "baz" } },
+      { foo: { bar: "qux" } },
+      [{ op: "replace", path: "/foo/bar", value: "qux" }]
+    ],
+    ["second-level object, remove", { foo: "foo" }, {}, [{ op: "remove", path: "/foo" }]]
+  ];
+
+  let i = 0;
+  for (const [name, before, after, patches] of cases) {
+    await t.test(
+      name,
+      async () =>
+        new Promise(async resolve => {
+          const tag = `test-diff-${++i}`;
+          class TestDiff extends JSONElement {
+            static tag = tag;
+            diff = true;
+
+            static get schema() {
+              return {
+                result: value => (value === "before" ? before : after)
+              };
+            }
+
+            get json() {
+              return super.json.result;
+            }
+          }
+
+          TestDiff.register();
+
+          document.body.innerHTML = `<${tag} result="before"></${tag}>`;
+          await customElements.whenDefined(tag);
+
+          const instance = document.querySelector(tag);
+
+          instance?.addEventListener("json-change", ev => {
+            assert.deepStrictEqual(patches, ev.detail.patches);
+            resolve();
+          });
+
+          setTimeout(() => instance.setAttribute("result", "after"));
+        })
+    );
+  }
 });
