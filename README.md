@@ -159,11 +159,13 @@ GeoJsonPoint.register();
 GeoJsonProperties.register();
 ```
 
-There are three main properties to change in a `JSONElement` subclass:
+There are three main properties in a `JSONElement` subclass:
 
 - `tag` is a static string property that determines the custom element tag name.
-- `schema` is a static object property that determines the keys and value types of the resulting JavaScript object.
-- `json` is an instance getter that returns the actual JavaScript object. Useful for validating and/or transforming the object's structure.
+- `schema` is a static object property that determines the keys and value types of the resulting JSON.
+- `json` is an instance property that returns the actual JSON.
+
+To get a component's JSON, just check the `json` property:
 
 ```js
 const feature = document.querySelector("geojson-feature");
@@ -171,13 +173,44 @@ const feature = document.querySelector("geojson-feature");
 console.log(feature.json);
 ```
 
-To be notified of changes to the JSON structure, listen for `json-change` events on the root element:
+Any time the JSON changes, components will emit a `json-change` event. You can listen to these on the root element of the `JSONElement` tree:
 
 ```js
 const feature = document.querySelector("geojson-feature");
 
 feature.addEventListener("json-change", () => {
   console.log(feature.json);
+});
+```
+
+If you need to know what changed, `JSONElement` can include an array of [JSON Patch](https://jsonpatch.com) objects with the `json-change` event. This must be explicitly enabled by calling the `enableDiff` function from the package, and then setting an instance property `diff = true` on the class emitting the event:
+
+```js
+import JSONElement, { enableDiff } from "./json-element.js";
+
+enableDiff();
+
+class GeoJsonFeature extends JSONElement {
+  static tag = "geojson-feature";
+  diff = true;
+
+  static get schema() {
+    return {
+      type: "Feature",
+      geometry: GeoJsonPoint,
+      properties: GeoJsonProperties
+    };
+  }
+}
+```
+
+`json-change` events will now contain a `patches` property on their event detail, which is an array of JSON Patch objects describing the change.
+
+```js
+const feature = document.querySelector("geojson-feature");
+
+feature.addEventListener("json-change", event => {
+  console.log(event.detail.patches);
 });
 ```
 
@@ -358,7 +391,7 @@ class ExampleCustom {
 
 ## Type safety
 
-By default, the type of `JSONElement` subclasses' `json` property is `any`. If you want a stricter type, you can create a getter overriding the `json` property and use a third-party library such as [Valibot](https://valibot.dev) to validate the resulting JSON:
+By default, the type of `JSONElement` subclasses' `json` property is `any`. If you want a stricter type, you can create a getter overriding the `json` property and use a third-party library such as [Valibot](https://valibot.dev) or [Zod](https://zod.dev) to validate the resulting JSON:
 
 ```js
 import { boolean, number, object, parse, string } from "valibot";
