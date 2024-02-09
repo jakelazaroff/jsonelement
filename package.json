@@ -5,7 +5,7 @@
   "main": "./json-element.js",
   "type": "module",
   "scripts": {
-    "test": "node --test test.mjs"
+    "test": "node --test json-element.test.mjs"
   },
   "keywords": [],
   "author": "",
