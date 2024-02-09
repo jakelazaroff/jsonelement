@@ -109,9 +109,6 @@ export default class JSONElement extends HTMLElement {
     customElements.define(tag, this);
   }
 
-  /** Whether to include a list of JSON Patch operations in `json-change` events */
-  diff = false;
-
   /** @type {Record<string, any>} */
   static schema = {};
 
@@ -202,7 +199,7 @@ export default class JSONElement extends HTMLElement {
   #notify() {
     /** @type {Patch[] | undefined} */
     let patches;
-    if (this.diff) {
+    if (this.hasAttribute("diff")) {
       const json = this.json;
       patches = diff(this.#prev, json);
       this.#prev = json;

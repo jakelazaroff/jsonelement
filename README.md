@@ -193,25 +193,17 @@ feature.addEventListener("json-change", () => {
 });
 ```
 
-If you need to know what changed, `JSONElement` can include an array of [JSON Patch](https://jsonpatch.com) objects with the `json-change` event. This must be explicitly enabled by calling the `enableDiff` function from the package, and then setting an instance property `diff = true` on the class emitting the event:
+If you need to know what changed, `JSONElement` can include an array of [JSON Patch](https://jsonpatch.com) objects with the `json-change` event. This must be explicitly enabled by calling the `enableDiff` function from the package, and then setting a `diff` attribute on the element emitting the event:
 
 ```js
 import JSONElement, { enableDiff } from "./json-element.js";
-
 enableDiff();
+```
 
-class GeoJsonFeature extends JSONElement {
-  static tag = "geojson-feature";
-  diff = true;
-
-  static get schema() {
-    return {
-      type: "Feature",
-      geometry: GeoJsonPoint,
-      properties: GeoJsonProperties
-    };
-  }
-}
+```html
+<geojson-feature diff>
+  <!-- ... -->
+</geojson-feature>
 ```
 
 `json-change` events will now contain a `patches` property on their event detail, which is an array of JSON Patch objects describing the change.

@@ -398,7 +398,7 @@ test("diff", async t => {
 
           TestDiff.register();
 
-          document.body.innerHTML = `<${tag} result="before"></${tag}>`;
+          document.body.innerHTML = `<${tag} diff result="before"></${tag}>`;
           await customElements.whenDefined(tag);
 
           const instance = document.querySelector(tag);
