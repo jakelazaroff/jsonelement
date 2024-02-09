@@ -9,7 +9,7 @@ As an example, here's how you might use `JSONElement` with a JavaScript library 
   <li class="place">Disney World Orlando</li>
   <li class="place">Disneyland Anaheim</li>
 </ul>
-<map-libre class="map">
+<map-libre>
   <maplibre-source slot="sources" id="places" type="geojson">
     <geojson-featurecollection>
       <geojson-feature slot="features">
@@ -97,7 +97,9 @@ function Map({ places }: { places: Place[] }) {
 </script>
 ```
 
-Of course, you'd need to build the `maplibre-*` and `geojson-*` elements in the first example using code like in the latter two. That's where `JSONElement` comes in: you can use it to easily transform elements in the DOM into JSON.
+In both React and HTML with vanilla JavaScript, you need to switch between two different languages. You also need to use imperative, side-effectful code to instantiate the map.
+
+Of course, under the hood in the first example the `maplibre-*` element is built using code like in the latter two. That's where `JSONElement` comes in: you can use it to easily transform elements in the DOM to build more declarative components.
 
 ## Getting Started
 
