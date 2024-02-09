@@ -4,6 +4,7 @@
   "description": "",
   "main": "./json-element.js",
   "type": "module",
+  "sideEffects": false,
   "scripts": {
     "test": "node --test json-element.test.mjs"
   },
